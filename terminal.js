@@ -1,139 +1,237 @@
-let termOut = null, termIn = null, termCwd = '~';
+/* ==========================================================================
+   KITTY TERMINAL & FASTFETCH SYSTEM EMULATOR
+   ========================================================================== */
+
+let termOut = null;
+let termIn = null;
+let termCwd = '~';
 const cmdHist = [];
+let histIdx = -1;
+
 const FS = {
-  '~': {type:'dir', children:['about.txt','projects/','research/','.config/','README.md','.zshrc']},
-  '~/projects': {type:'dir', children:['phub-cli/','medsync/','mail-server/','ukulele-tuner/']},
-  '~/projects/phub-cli': {type:'dir', children:['README.md','phub.sh','requirements.txt']},
-  '~/projects/medsync': {type:'dir', children:['README.md','docker-compose.yml','src/']},
-  '~/projects/mail-server': {type:'dir', children:['README.md','postfix.conf','dovecot.conf']},
-  '~/projects/ukulele-tuner': {type:'dir', children:['index.html','tuner.js','style.css']},
-  '~/research': {type:'dir', children:['oral-cancer-gan.pdf','results/','README.md','train.py']},
-  '~/research/results': {type:'dir', children:['accuracy.csv','confusion_matrix.png','roc_curve.png']},
-  '~/.config': {type:'dir', children:['hypr/','kitty/','waybar/']},
-  '~/.config/hypr': {type:'dir', children:['hyprland.conf']},
-  '~/.config/kitty': {type:'dir', children:['kitty.conf']},
-  '~/.config/waybar': {type:'dir', children:['config','style.css']},
+  '~': { type: 'dir', children: ['about.md', 'projects/', 'research/', '.config/', 'README.md', '.zshrc'] },
+  '~/projects': { type: 'dir', children: ['statmux/', 'phub-cli/', 'zap/', 'mail-server/'] },
+  '~/projects/statmux': { type: 'dir', children: ['README.md', 'statmux.config.ts', 'package.json'] },
+  '~/projects/phub-cli': { type: 'dir', children: ['README.md', 'phub.py', 'PKGBUILD'] },
+  '~/projects/zap': { type: 'dir', children: ['README.md', 'worker.ts', 'webrtc.ts', 'wrangler.toml'] },
+  '~/projects/mail-server': { type: 'dir', children: ['README.md', 'postfix.cf', 'dovecot.conf'] },
+  '~/research': { type: 'dir', children: ['oral-cancer-ssgan.pdf', 'results/', 'README.md', 'train.py'] },
+  '~/research/results': { type: 'dir', children: ['accuracy.csv', 'confusion_matrix.png', 'roc_curve.png'] },
+  '~/.config': { type: 'dir', children: ['hypr/', 'kitty/', 'waybar/', 'nvim/'] },
+  '~/.config/hypr': { type: 'dir', children: ['hyprland.conf'] },
+  '~/.config/kitty': { type: 'dir', children: ['kitty.conf'] },
+  '~/.config/waybar': { type: 'dir', children: ['config', 'style.css'] },
+  '~/.config/nvim': { type: 'dir', children: ['init.lua'] }
 };
+
 const FILES = {
-  '~/about.txt': `name     : Sayan Pal
-alias    : sayanx64
-uni      : KIIT, Bhubaneswar
-cgpa     : 9.24
-os       : Arch Linux x86_64
-wm       : Hyprland
-shell    : zsh
-pronouns : over/flow
-gdg      : KIIT Cloud Domain
-github   : github.com/sayanx64`,
-  '~/README.md': `# sayan/pal
-CS undergrad @ KIIT · AI/ML enthusiast
-IEEE published author (Nov 2025)
-git commit -m "fix tomorrow"
-online when the world sleeps`,
-  '~/.zshrc': `# ~/.zshrc
+  '~/about.md': `# Sayan Pal
+Website: https://sayan.cyou
+GitHub: https://github.com/sayanx64
+LinkedIn: https://linkedin.com/in/sayarch
+LeetCode: https://leetcode.com/sayarch (135+ Solved)
+Email: spcodr@gmail.com | Phone: +91-629-0056-864
+
+## Education
+Kalinga Institute of Industrial Technology (KIIT University)
+B.Tech, Computer Science & Engineering (AI/ML Specialization) — GPA 9.07
+Bhubaneswar, India · Aug 2024 – Present
+
+## Technical Skills
+- Languages: C, C++, Java, Python, Shell/Bash
+- Web & Backend: React, Next.js, Node.js, Express, Supabase, PHP, REST APIs, OAuth 2.0
+- Data & ML: Pandas, NumPy, Matplotlib, Seaborn, EfficientNet, GANs, Semi-Supervised Learning
+- Cloud & Tools: Linux (Arch), AWS, GCP, Cloudflare Workers (R2/KV), Railway, Docker, WebRTC
+
+## Key Projects
+- statmux (https://statmux.sayan.cyou) — Developer Analytics Dashboard (Next.js, Express, Supabase, Railway)
+- Terminal-Based Media Browser (phub-cli) — AUR Package, 160+ GitHub Stars
+- Zap — Serverless P2P & Cloud File Transfer (GDG Cloud KIIT, Cloudflare Workers, R2, WebRTC)
+- Production Mail Server — Hardened Debian, Postfix/Dovecot, Fail2Ban, TLS, IPv6
+
+## Experience & Leadership
+- XYlofy AI — Data Analyst Intern (May 2026, Remote)
+- GDG Cloud KIIT — Cloud Member (Feb 2026 – Present)
+- Bronze Award — INDCON Industrial Innovation Challenge (Mar 2026, Anna University)
+- IEEE Published Author — DMIHER 2025 (DOI: 10.1109/IDICAIHEI65991.2025.11379848)`,
+
+  '~/README.md': `# sayan@arch ~ Hyprland Rice
+Welcome to Sayan Pal's interactive portfolio environment.
+Live Projects: statmux (https://statmux.sayan.cyou)
+IEEE Paper: DOI: 10.1109/IDICAIHEI65991.2025.11379848
+Built with Arch Linux, Hyprland Wayland, and Sakura Latte aesthetics.`,
+
+  '~/.zshrc': `# ~/.zshrc - Starship Prompt
 export EDITOR=nvim
-export PATH="$HOME/.local/bin:$PATH"
-alias ll='ls -la'
-alias gs='git status'
-alias gc='git commit'
+export BROWSER=firefox
+alias ll='ls -la --color=auto'
+alias gs='git status -sb'
+alias statmux='open https://statmux.sayan.cyou'
 alias vim='nvim'
-alias btw='echo "i use arch"'
-alias please='sudo'
+alias fastfetch='fastfetch --kitty-direct'
+alias btw='echo "i use arch btw"'
 eval "$(starship init zsh)"`,
-  '~/research/README.md': `# oral cancer detection
-Semi-Supervised GAN + EfficientNet-B3
-Published @ IEEE DMIHER 2025
-DOI: 10.1109/IDICAIHEI65991.2025.11379848`,
+
+  '~/projects/statmux/statmux.config.ts': `// statmux — Developer Analytics Dashboard Configuration
+export interface DeveloperProfile {
+  username: string;
+  githubHandle: string;
+  codeforcesHandle: string;
+  leetcodeHandle: string;
+  codeHealthScore: number;
+}
+
+export const statmuxConfig = {
+  appUrl: 'https://statmux.sayan.cyou',
+  apiBase: 'https://api.statmux.sayan.cyou/v1',
+  integrations: ['github', 'codeforces', 'leetcode'],
+  features: {
+    sdlcAuditing: true,
+    codeHealthComputation: true,
+    publicProfiles: true
+  }
+};`,
+
+  '~/research/README.md': `# Semi-Supervised Oral Cancer Image Classification
+Authors: Sayan Pal, Utkarsh, Shoham Chakraborty, Saurabh Bilgaiyan, Chiranjib Parida
+Conference: 2025 3rd DMIHER Int’l Conference on AI in Healthcare (IDICAIHEI), IEEE Xplore
+DOI: 10.1109/IDICAIHEI65991.2025.11379848
+Performance: 93.5% accuracy (AUC 0.95), ProtoNet 94% on 5-way 10-shot tasks.
+Methodology: K+1 SSGAN + EfficientNet-B3 + Prototypical Few-Shot Metric.`,
+
   '~/research/train.py': `import torch
 import torch.nn as nn
-from efficientnet import EfficientNetB3
-from gan import SSGAN
-def train(epochs=100, lr=1e-4):
-    model = EfficientNetB3(num_classes=2)
-    gan = SSGAN(latent_dim=128)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    for epoch in range(epochs):
-        # Generate synthetic samples
-        fake_imgs = gan.generate(batch_size=32)
-        # Train classifier
-        loss = model.train_step(real_imgs, fake_imgs, labels)
-        print(f"Epoch {epoch}: loss={loss:.4f}")
+from torchvision.models import efficientnet_b3
+from gan import KPlusOneSSGAN
+
+def train_pipeline(epochs=100, lr=1e-4):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = efficientnet_b3(weights=None, num_classes=2).to(device)
+    ssgan = KPlusOneSSGAN(latent_dim=128).to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    
+    print("[*] Training Semi-Supervised K+1 SSGAN + EfficientNet-B3...")
+    for epoch in range(1, epochs + 1):
+        # Semi-supervised feature learning on low-annotation tissue histology
+        pass
+    print("[+] Model achieved 93.5% accuracy (AUC 0.95) and 94% ProtoNet few-shot accuracy.")
+
 if __name__ == "__main__":
-    train()`,
-  '~/projects/phub-cli/README.md': `# phub-cli  ★ 105
-Terminal video browser
-Lang: Bash + Python
-Deps: fzf, mpv, yt-dlp
-License: GPL-3.0`,
-  '~/.config/hypr/hyprland.conf': `# Hyprland config
+    train_pipeline()`,
+
+  '~/.config/hypr/hyprland.conf': `# Hyprland Rice Config
 monitor=,preferred,auto,1
-exec-once = waybar & kitty
+exec-once = waybar & kitty & hyprpaper
+
 general {
-    gaps_in = 5
-    gaps_out = 10
-    border_size = 2
-    col.active_border = rgba(d4879aee)
-    col.inactive_border = rgba(b5a8a066)
+    gaps_in = 6
+    gaps_out = 12
+    border_size = 1
+    col.active_border = rgba(dc8a78ee) rgba(7287fdee) 45deg
+    col.inactive_border = rgba(dce0e888)
+    layout = dwindle
 }
+
 decoration {
-    rounding = 14
-    blur {
-        enabled = true
-        size = 8
-        passes = 2
-    }
+    rounding = 12
     drop_shadow = true
-    shadow_range = 20
+    shadow_range = 24
+    shadow_render_power = 2
+    col.shadow = rgba(4c4f6918)
 }
+
 animations {
-    bezier = spring, 0.34, 1.56, 0.64, 1
-    animation = windows, 1, 5, spring, slide
-    animation = fade, 1, 4, default
+    enabled = true
+    bezier = myBezier, 0.05, 0.9, 0.1, 1.05
+    animation = windows, 1, 6, myBezier
+    animation = windowsOut, 1, 5, default, popin 80%
+    animation = border, 1, 10, default
+    animation = fade, 1, 6, default
+    animation = workspaces, 1, 6, default, slide
 }
+
 bind = SUPER, RETURN, exec, kitty
+bind = SUPER, SPACE, exec, rofi -show drun
 bind = SUPER, Q, killactive
-bind = SUPER, SPACE, exec, rofi -show drun`,
+bind = SUPER, V, togglefloating
+bind = SUPER, W, exec, hyprpaper --next`,
+
+  '~/projects/phub-cli/README.md': `# Terminal-Based Media Browser (phub-cli) ★ 160+
+Open-source terminal (TUI) media browser distributed via the Arch User Repository (AUR).
+- Reverse-engineered JSON engagement feed with detrended sparkline visualization.
+- Stack: Python, Shell, BeautifulSoup, fzf, mpv
+- 160+ GitHub stars.`
 };
-const NEOFETCH = `<span class="tc-accent">      /\\</span>
-<span class="tc-accent">     /  \\</span>        <span class="tc-bold">sayan</span><span class="tc-dim">@</span><span class="tc-bold">arch</span>
-<span class="tc-accent">    / /\\ \\</span>       <span class="tc-dim">──────────────</span>
-<span class="tc-accent">   / /  \\ \\</span>      <span class="tc-teal">OS</span>       Arch Linux x86_64
-<span class="tc-accent">  /_/    \\_\\</span>     <span class="tc-teal">WM</span>       Hyprland 0.40.0
-                 <span class="tc-teal">Terminal</span> kitty 0.35
-                 <span class="tc-teal">Shell</span>    zsh 5.9
-                 <span class="tc-teal">Font</span>     JetBrains Mono
-                 <span class="tc-teal">Packages</span> 834 (pacman)
-                 <span class="tc-teal">CGPA</span>     <span class="tc-yellow">9.24</span> (kiit)
-                 <span class="tc-teal">Papers</span>   <span class="tc-peach">1 (IEEE)</span>
-                 <span class="tc-teal">GDG</span>      KIIT · Cloud
-                 <span class="tc-teal">Uptime</span>   <span id="nf-upt">—</span>
-<span style="color:#e87171">███</span><span style="color:#e8b84d">███</span><span style="color:#6bc46b">███</span><span style="color:#81c8be">███</span><span style="color:#8caaee">███</span><span style="color:#ca9ee6">███</span><span style="color:#f4b8e4">███</span><span style="color:#c6d0f5">███</span>`;
-const FORTUNES = [
-  '"It works on my machine." — every developer',
-  '"git push --force and pray" — ancient proverb',
-  'There are 10 types of people: those who understand binary and those who don\'t.',
-  '"Mass equals class divided by volume." — Einstein, probably not',
-  '"sudo rm -rf / is just spring cleaning" — no sysadmin ever',
-  '"I don\'t always test my code, but when I do, I do it in production." — The Most Interesting Developer',
-  '"99 bugs in the code, take one down, patch it around, 127 bugs in the code."',
-  '"Programming is 10% writing code and 90% understanding why it doesn\'t work."',
-  '"A SQL query walks into a bar, walks up to two tables, and asks: Can I JOIN you?"',
-  '"My code works, I have no idea why. My code doesn\'t work, I have no idea why."',
-];
+
+const FASTFETCH_ART = `
+<div style="display:flex;gap:18px;align-items:flex-start;margin:2px 0 4px;flex-wrap:nowrap;">
+  <pre style="font-family:'JetBrains Mono',monospace;font-size:9.5px;line-height:1.12;font-weight:700;margin:0;user-select:none;flex-shrink:0;">
+<span style="color:#04a5e5">                  -\`</span>
+<span style="color:#04a5e5">                 .o+\`</span>
+<span style="color:#04a5e5">                \`ooo/</span>
+<span style="color:#1e66f5">               \`+oooo:</span>
+<span style="color:#1e66f5">              \`+oooooo:</span>
+<span style="color:#1e66f5">              -+oooooo+:</span>
+<span style="color:#209fb5">            \`/:-:++oooo+:</span>
+<span style="color:#209fb5">           \`/++++/+++++++:</span>
+<span style="color:#209fb5">          \`/++++++++++++++:</span>
+<span style="color:#179299">         \`/+++ooooooooooooo/\`</span>
+<span style="color:#179299">        ./ooosssso++osssssso+\`</span>
+<span style="color:#179299">       .oossssso-\`\`\`\`/ossssss+\`</span>
+<span style="color:#8839ef">      -osssssso.      :ssssssso.</span>
+<span style="color:#8839ef">     :osssssss/        osssso+++.</span>
+<span style="color:#8839ef">    /ossssssss/        +ssssooo/-</span>
+<span style="color:#7287fd">  \`/ossssso+/:-        -:/+osssso+-</span>
+<span style="color:#7287fd"> \`+sso+:-\`                 \`.-/+oso:</span>
+<span style="color:#7287fd">\`++:.                           \`-/+/</span>
+<span style="color:#7287fd">.\`                                 \`/</span>
+  </pre>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.38;min-width:0;flex:1;">
+    <div><span class="tc-green" style="font-weight:800;font-size:12px;">sayan</span><span class="tc-dim">@</span><span class="tc-blue" style="font-weight:800;font-size:12px;">arch</span></div>
+    <div style="color:var(--border);font-weight:700;margin:1px 0;">-----------------------------------</div>
+    <div><span class="tc-sky" style="font-weight:700">OS:</span> Arch Linux x86_64</div>
+    <div><span class="tc-sky" style="font-weight:700">Host:</span> Hyprland Wayland (v0.42.0)</div>
+    <div><span class="tc-sky" style="font-weight:700">Kernel:</span> 6.12.7-arch1-1-zen</div>
+    <div><span class="tc-sky" style="font-weight:700">Uptime:</span> 4 hours, 20 mins</div>
+    <div><span class="tc-sky" style="font-weight:700">Packages:</span> 1142 (pacman), 34 (aur)</div>
+    <div><span class="tc-sky" style="font-weight:700">Shell:</span> zsh 5.9 (x86_64-pc-linux-gnu)</div>
+    <div><span class="tc-sky" style="font-weight:700">Terminal:</span> kitty 0.35.2 (JetBrains Mono)</div>
+    <div><span class="tc-sky" style="font-weight:700">WM:</span> Hyprland (DWM Master & Stack)</div>
+    <div><span class="tc-sky" style="font-weight:700">Theme:</span> Sakura Latte [Catppuccin]</div>
+    <div><span class="tc-sky" style="font-weight:700">Education:</span> KIIT CS AI/ML (<span class="tc-green" style="font-weight:700">GPA 9.07</span>)</div>
+    <div><span class="tc-sky" style="font-weight:700">LeetCode:</span> <span class="tc-yellow" style="font-weight:700">135+ Solved (@sayarch)</span></div>
+    <div><span class="tc-sky" style="font-weight:700">Featured:</span> <span class="tc-mauve" style="font-weight:700">statmux.sayan.cyou</span></div>
+    <div><span class="tc-sky" style="font-weight:700">AUR PKG:</span> <span class="tc-peach" style="font-weight:700">phub-cli (★ 160+ stars)</span></div>
+    <div><span class="tc-sky" style="font-weight:700">Research:</span> <span class="tc-teal" style="font-weight:700">IEEE Xplore Published (Nov 2025)</span></div>
+    <div><span class="tc-sky" style="font-weight:700">Memory:</span> 4.21 GiB / 15.28 GiB (27%)</div>
+    <div class="color-bar">
+      <span style="background:#d20f39"></span>
+      <span style="background:#fe640b"></span>
+      <span style="background:#df8e1d"></span>
+      <span style="background:#40a02b"></span>
+      <span style="background:#04a5e5"></span>
+      <span style="background:#1e66f5"></span>
+      <span style="background:#8839ef"></span>
+      <span style="background:#dc8a78"></span>
+    </div>
+  </div>
+</div>`;
+
 function resolvePath(p) {
   if (!p) return termCwd;
   if (p === '~') return '~';
   if (p.startsWith('~/')) return p;
   if (p === '..') {
     if (termCwd === '~') return '~';
-    const parts = termCwd.split('/'); parts.pop();
+    const parts = termCwd.split('/');
+    parts.pop();
     return parts.join('/') || '~';
   }
   if (p === '.') return termCwd;
   return (termCwd === '~' ? '~/' : termCwd + '/') + p.replace(/\/$/, '');
 }
-function treeView(path, prefix) {
-  prefix = prefix || '';
+
+function treeView(path, prefix = '') {
   const node = FS[path];
   if (!node) return '';
   let out = '';
@@ -145,194 +243,460 @@ function treeView(path, prefix) {
     const name = isDir ? `<span class="tc-blue">${k}</span>` : `<span class="tc-teal">${k}</span>`;
     out += prefix + branch + name + '\n';
     if (isDir) {
-      const sub = resolvePath(k.slice(0,-1));
-      const full = path === '~' ? '~/' + k.slice(0,-1) : path + '/' + k.slice(0,-1);
+      const full = path === '~' ? '~/' + k.slice(0, -1) : path + '/' + k.slice(0, -1);
       if (FS[full]) out += treeView(full, prefix + (last ? '    ' : '│   '));
     }
   });
   return out;
 }
+
 function execCmd(raw) {
-  const p = raw.trim().split(/\s+/), cmd = p[0], a = p.slice(1);
+  const parts = raw.trim().split(/\s+/);
+  const cmd = parts[0];
+  const args = parts.slice(1);
   if (!cmd) return '';
-  switch(cmd) {
-    case 'neofetch': case 'fastfetch': {
-      const u = Math.floor(performance.now()/1000);
-      const h = Math.floor(u/3600), m = Math.floor((u%3600)/60);
-      setTimeout(() => { const e = document.getElementById('nf-upt'); if(e) e.textContent = h+'h '+m+'m'; }, 50);
-      return NEOFETCH;
-    }
-    case 'clear': termOut.innerHTML = ''; return null;
+
+  switch (cmd) {
+    case 'fastfetch':
+    case 'neofetch':
+      return FASTFETCH_ART;
+
+    case 'clear':
+      termOut.innerHTML = '';
+      return null;
+
     case 'ls': {
-      const dir = resolvePath(a[0]);
+      const dir = resolvePath(args[0]);
       const node = FS[dir];
-      if (!node) return `<span class="tc-red">ls: cannot access '${a[0]||dir}': No such file or directory</span>`;
-      return node.children.map(f => f.endsWith('/') ? `<span class="tc-blue">${f}</span>` : `<span class="tc-teal">${f}</span>`).join('  ');
+      if (!node) return `<span class="tc-red">ls: cannot access '${args[0] || dir}': No such file or directory</span>`;
+      return node.children.map(f => f.endsWith('/') ? `<span class="tc-blue" style="font-weight:600">${f}</span>` : `<span class="tc-teal">${f}</span>`).join('  ');
     }
+
     case 'cat': {
-      if (!a[0]) return `<span class="tc-red">cat: missing operand</span>`;
-      const fp = resolvePath(a[0]);
+      if (!args[0]) return `<span class="tc-red">cat: missing operand</span>`;
+      const fp = resolvePath(args[0]);
       const ct = FILES[fp];
-      if (!ct) return `<span class="tc-red">cat: ${a[0]}: No such file or directory</span>`;
-      return ct.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      if (!ct) return `<span class="tc-red">cat: ${args[0]}: No such file or directory</span>`;
+      return ct.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
+
     case 'cd': {
-      const to = a[0] || '~';
+      const to = args[0] || '~';
       const r = resolvePath(to);
-      if (FS[r] || r === '~') { termCwd = r; updatePromptCwd(); return ''; }
+      if (FS[r] || r === '~') {
+        termCwd = r;
+        updatePromptCwd();
+        return '';
+      }
       return `<span class="tc-red">cd: ${to}: No such file or directory</span>`;
     }
-    case 'pwd': return termCwd.replace('~', '/home/sayan');
-    case 'whoami': return '<span class="tc-green">sayan</span>';
-    case 'hostname': return '<span class="tc-blue">arch</span>';
-    case 'date': return new Date().toString();
-    case 'uname': return a.includes('-a') ? 'Linux arch 6.12.7-arch1-1 #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux' : 'Linux';
-    case 'uptime': {
-      const u=Math.floor(performance.now()/1000),h=Math.floor(u/3600),m=Math.floor((u%3600)/60),s=u%60;
-      return `up ${h}h ${m}m ${s}s, 1 user, load: 0.42, 0.38, 0.31`;
-    }
-    case 'echo': return a.join(' ');
-    case 'exit': closeWin('terminal'); return null;
+
+    case 'pwd':
+      return termCwd.replace('~', '/home/sayan');
+
+    case 'whoami':
+      return '<span class="tc-green" style="font-weight:600">sayan (Sayan Pal · CS KIIT AI/ML)</span>';
+
+    case 'statmux':
+      window.open('https://statmux.sayan.cyou', '_blank');
+      return `<span class="tc-mauve" style="font-weight:700">Opening statmux Developer Dashboard (https://statmux.sayan.cyou)...</span>
+<span class="tc-dim">GitHub repository: https://github.com/sayanx64/statmux</span>`;
+
+    case 'leetcode':
+      window.open('https://leetcode.com/sayarch', '_blank');
+      return `<span class="tc-yellow">Opening LeetCode profile (135+ Solved) @sayarch...</span>`;
+
+    case 'resume':
+      if (typeof openAbout === 'function') openAbout();
+      return '<span class="tc-green">Opening Sayan Pal\'s Complete Resume & Bio...</span>';
+
     case 'tree': {
-      const dir = resolvePath(a[0]);
+      const dir = resolvePath(args[0]);
       const path = FS[dir] ? dir : termCwd;
-      return `<span class="tc-bold">${path.split('/').pop()||'~'}</span>\n` + treeView(path);
+      return `<span class="tc-bold">${path}</span>\n` + treeView(path);
     }
-    case 'head': {
-      if (!a[0]) return `<span class="tc-red">head: missing operand</span>`;
-      const ct = FILES[resolvePath(a[0])];
-      if (!ct) return `<span class="tc-red">head: ${a[0]}: No such file</span>`;
-      return ct.split('\n').slice(0,5).join('\n').replace(/</g,'&lt;');
-    }
-    case 'tail': {
-      if (!a[0]) return `<span class="tc-red">tail: missing operand</span>`;
-      const ct = FILES[resolvePath(a[0])];
-      if (!ct) return `<span class="tc-red">tail: ${a[0]}: No such file</span>`;
-      return ct.split('\n').slice(-5).join('\n').replace(/</g,'&lt;');
-    }
-    case 'wc': {
-      if (!a[0]) return `<span class="tc-red">wc: missing operand</span>`;
-      const ct = FILES[resolvePath(a[0])];
-      if (!ct) return `<span class="tc-red">wc: ${a[0]}: No such file</span>`;
-      const lines = ct.split('\n').length, words = ct.split(/\s+/).length, chars = ct.length;
-      return `  ${lines}  ${words} ${chars} ${a[0]}`;
-    }
-    case 'grep': {
-      if (a.length < 2) return `<span class="tc-red">grep: usage: grep PATTERN FILE</span>`;
-      const ct = FILES[resolvePath(a[1])];
-      if (!ct) return `<span class="tc-red">grep: ${a[1]}: No such file</span>`;
-      const pat = a[0].toLowerCase();
-      const matches = ct.split('\n').filter(l => l.toLowerCase().includes(pat));
-      if (!matches.length) return '';
-      return matches.map(l => l.replace(/</g,'&lt;').replace(new RegExp(`(${a[0]})`,'gi'), `<span class="tc-red">$1</span>`)).join('\n');
-    }
-    case 'find': {
-      const dir = resolvePath(a[0]) || termCwd;
-      let out = [dir];
-      function walk(p) {
-        const n = FS[p]; if (!n) return;
-        n.children.forEach(c => {
-          const full = p + '/' + c.replace(/\/$/,'');
-          out.push(full.replace('~/','./')); if (c.endsWith('/') && FS[full]) walk(full);
-        });
+
+    case 'theme': {
+      const THEMES = ['sakura-latte', 'frost', 'matcha', 'wisteria', 'rose-gold'];
+      const NAMES = {
+        'sakura-latte': 'Sakura Latte',
+        'latte': 'Sakura Latte',
+        'frost': 'Frost',
+        'matcha': 'Matcha',
+        'wisteria': 'Wisteria',
+        'rose-gold': 'Rose Gold',
+        'rose': 'Rose Gold'
+      };
+      const arg = (args[0] || '').toLowerCase();
+      if (!arg || arg === 'list') {
+        return `<span class="tc-mauve" style="font-weight:700">Light Themes:</span>
+  <span class="tc-bold">latte</span>       - Sakura Latte (Rosewater & Lavender)
+  <span class="tc-bold">frost</span>       - Crisp Blue-Silver
+  <span class="tc-bold">matcha</span>      - Botanical Sage & Cream
+  <span class="tc-bold">wisteria</span>    - Soft Lilac & Purple
+  <span class="tc-bold">rose-gold</span>   - Warm Blush Peach & Gold
+  <span class="tc-dim">Usage: theme &lt;name&gt; or theme next</span>`;
       }
-      walk(dir); return out.join('\n');
-    }
-    case 'cal': {
-      const d = new Date(), y = d.getFullYear(), mo = d.getMonth();
-      const names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-      const first = new Date(y,mo,1).getDay(), last = new Date(y,mo+1,0).getDate(), today = d.getDate();
-      let h = `     ${names[mo]} ${y}\nSu Mo Tu We Th Fr Sa\n`;
-      let line = '   '.repeat(first);
-      for (let i=1;i<=last;i++) {
-        const ds = i<10?' '+i:''+i;
-        line += (i===today?`<span class="tc-accent">${ds}</span>`:ds);
-        if ((first+i)%7===0) { h+=line+'\n'; line=''; } else line+=' ';
+      if (arg === 'next') {
+        const cur = document.documentElement.getAttribute('data-theme') || 'sakura-latte';
+        const nextIdx = (THEMES.indexOf(cur) + 1) % THEMES.length;
+        const nextT = THEMES[nextIdx];
+        document.documentElement.setAttribute('data-theme', nextT);
+        const nameEl = document.getElementById('theme-name');
+        if (nameEl) nameEl.textContent = NAMES[nextT] || nextT;
+        return `<span class="tc-green">Switched theme to ${NAMES[nextT] || nextT}</span>`;
       }
-      if (line.trim()) h+=line;
-      return h;
+      const target = arg === 'latte' ? 'sakura-latte' : (arg === 'rose' ? 'rose-gold' : arg);
+      if (THEMES.includes(target)) {
+        document.documentElement.setAttribute('data-theme', target);
+        const nameEl = document.getElementById('theme-name');
+        if (nameEl) nameEl.textContent = NAMES[target] || target;
+        return `<span class="tc-green">Switched theme to ${NAMES[target] || target}</span>`;
+      }
+      return `<span class="tc-red">Unknown theme: '${arg}'. Type <span class="tc-yellow">theme list</span> for available themes.</span>`;
     }
-    case 'fortune': return `<span class="tc-yellow">${FORTUNES[Math.floor(Math.random()*FORTUNES.length)]}</span>`;
-    case 'cowsay': {
-      const msg = a.join(' ') || 'moo';
-      const border = '_'.repeat(msg.length+2);
-      return ` ${border}\n< ${msg} >\n ${'-'.repeat(msg.length+2)}\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\       )\\/\\\n                ||----w |\n                ||     ||`;
+
+    case 'wp':
+    case 'wallpaper': {
+      const arg = (args[0] || '').toLowerCase();
+      if (!arg || arg === 'list') {
+        return `<span class="tc-sky" style="font-weight:700">Animated Light Wallpapers:</span>
+  <span class="tc-bold">1. sakura</span>    - Drifting Sakura Petals
+  <span class="tc-bold">2. snow</span>      - Gentle Winter Snowfall
+  <span class="tc-bold">3. firefly</span>   - Warm Firefly Garden & Waves
+  <span class="tc-bold">4. rain</span>      - Soft Lavender Rain & Reflections
+  <span class="tc-bold">5. bubble</span>    - Floating Translucent Bubbles
+  <span class="tc-bold">6. cream</span>     - Clean Minimal Gradient
+  <span class="tc-bold">7. aurora</span>    - Soft Aurora Ribbon Drift
+  <span class="tc-dim">Usage: wp &lt;name&gt; or wp next (or Super+W)</span>`;
+      }
+      if (arg === 'next') {
+        if (typeof cycleWallpaper === 'function') cycleWallpaper();
+        return `<span class="tc-cyan">Cycled to next wallpaper.</span>`;
+      }
+      if (typeof setWallpaper === 'function') {
+        const name = setWallpaper(arg);
+        return `<span class="tc-green">Wallpaper set to ${name}</span>`;
+      }
+      return '';
     }
-    case 'df': return `Filesystem     1K-blocks     Used Available Use% Mounted on
-/dev/nvme0n1p2 234567890 45678901 188888989  20% /
-tmpfs            8192000   123456   8068544   2% /tmp
-/dev/nvme0n1p1    524288    38400    485888   8% /boot`;
-    case 'free': return `              total        used        free    buff/cache   available
-Mem:       16384000     4567890     8901234     2914876    11234567
-Swap:       8192000           0     8192000`;
-    case 'ps': return `  PID TTY      STAT   TIME COMMAND
-    1 ?        Ss     0:02 /sbin/init
-  402 ?        Ss     0:00 /usr/lib/systemd/systemd --user
-  987 ?        Sl     0:12 Hyprland
- 1234 pts/0    S      0:00 kitty
- 1456 pts/0    Ss     0:00 zsh
- ${2000+Math.floor(Math.random()*1000)} pts/0    R+     0:00 ps`;
-    case 'ip': return `1: lo: <LOOPBACK,UP> mtu 65536
-    inet 127.0.0.1/8 scope host lo
-2: enp0s3: <BROADCAST,UP> mtu 1500
-    inet 192.168.1.42/24 brd 192.168.1.255 scope global enp0s3
-3: wlan0: <BROADCAST,UP> mtu 1500
-    inet 10.0.0.15/24 brd 10.0.0.255 scope global wlan0`;
-    case 'which': return a[0] ? `/usr/bin/${a[0]}` : `<span class="tc-red">which: missing argument</span>`;
-    case 'type': return a[0] ? `${a[0]} is /usr/bin/${a[0]}` : '';
-    case 'env': return `USER=sayan\nHOME=/home/sayan\nSHELL=/usr/bin/zsh\nEDITOR=nvim\nLANG=en_US.UTF-8\nTERM=xterm-kitty\nXDG_SESSION_TYPE=wayland\nWAYLAND_DISPLAY=wayland-1\nPATH=/usr/local/bin:/usr/bin:/home/sayan/.local/bin`;
-    case 'history': return cmdHist.map((c,i) => `  ${i+1}  ${c}`).join('\n');
-    case 'alias': return `ll='ls -la'\ngs='git status'\ngc='git commit'\nvim='nvim'\nbtw='echo "i use arch"'\nplease='sudo'`;
-    case 'man': {
-      if (!a[0]) return `<span class="tc-red">What manual page do you want?</span>`;
-      const pages = {ls:'list directory contents',cat:'concatenate files',cd:'change directory',grep:'search patterns in files',find:'search for files',tree:'list directory tree',cal:'display calendar',cowsay:'speaking cow',fortune:'print a random quote',neofetch:'system info',ps:'report process status',df:'disk space usage',free:'memory usage'};
-      return pages[a[0]] ? `<span class="tc-bold">${a[0].toUpperCase()}(1)</span>\n\nNAME\n    ${a[0]} - ${pages[a[0]]}\n\nSYNOPSIS\n    ${a[0]} [options] [arguments]` : `<span class="tc-red">No manual entry for ${a[0]}</span>`;
+
+    case 'btop':
+    case 'htop':
+      if (typeof openBtop === 'function') {
+        openBtop();
+        return '<span class="tc-cyan">Launching btop monitor GUI...</span>';
+      }
+      return '';
+
+    case 'nvim':
+    case 'vim':
+    case 'code':
+      if (typeof openEditor === 'function') {
+        openEditor();
+        return '<span class="tc-green">Opening Neovim (LazyVim)...</span>';
+      }
+      return '';
+
+    case 'projects':
+      if (typeof openProjects === 'function') openProjects();
+      return '<span class="tc-cyan">Opening Projects portfolio...</span>';
+
+    case 'research':
+    case 'paper':
+      if (typeof openResearch === 'function') openResearch();
+      return '<span class="tc-mauve">Opening IEEE Research showcase...</span>';
+
+    case 'about':
+      if (typeof openAbout === 'function') openAbout();
+      return '<span class="tc-green">Opening About Sayan...</span>';
+
+    case 'cmatrix':
+      return `<span class="tc-green">01010101010101010101010101010101010101010101010101
+10101010101010101010101010101010101010101010101010
+01010101010101 ARCH HYPRLAND WAYLAND 01010101010101
+10101010101010101010101010101010101010101010101010</span>`;
+
+    case 'fortune':
+      const fortunes = [
+        '"It works on my machine." — every developer',
+        '"Talk is cheap. Show me the code." — Linus Torvalds',
+        '"Real programmers use Arch Linux and Hyprland."',
+        '"Semi-supervised GANs > brute force training."',
+        '"statmux.sayan.cyou — single dashboard for all dev metrics."'
+      ];
+      return `<span class="tc-yellow">${fortunes[Math.floor(Math.random() * fortunes.length)]}</span>`;
+
+    case 'cowsay':
+      const msg = args.join(' ') || 'i use arch btw';
+      const border = '_'.repeat(msg.length + 2);
+      return ` ${border}\n< ${msg} >\n ${'-'.repeat(msg.length + 2)}\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\       )\\/\\\n                ||----w |\n                ||     ||`;
+
+    case 'btw':
+      return `<span class="tc-mauve" style="font-weight:700">i use arch btw 󰣇</span>`;
+
+    case 'donut': {
+      let A = 0, B = 0;
+      const container = document.createElement('pre');
+      container.style.fontFamily = 'JetBrains Mono, monospace';
+      container.style.fontSize = '9.5px';
+      container.style.lineHeight = '1.05';
+      container.style.color = 'var(--accent)';
+      container.style.margin = '8px 0';
+      termOut.appendChild(container);
+
+      let frameCount = 0;
+      const interval = setInterval(() => {
+        let b = [];
+        let z = [];
+        A += 0.08;
+        B += 0.04;
+        let cA = Math.cos(A), sA = Math.sin(A),
+            cB = Math.cos(B), sB = Math.sin(B);
+        for (let k = 0; k < 1760; k++) {
+          b[k] = k % 80 == 79 ? "\n" : " ";
+          z[k] = 0;
+        }
+        for (let j = 0; j < 6.28; j += 0.07) {
+          let ct = Math.cos(j), st = Math.sin(j);
+          for (let i = 0; i < 6.28; i += 0.02) {
+            let sp = Math.sin(i), cp = Math.cos(i),
+                h = ct + 2,
+                D = 1 / (sp * h * sA + st * cA + 5),
+                t = sp * h * cA - st * sA;
+            let x = 0 | (36 + 26 * D * (cp * h * cB - t * sB)),
+                y = 0 | (11 + 13 * D * (cp * h * sB + t * cB)),
+                o = x + 80 * y,
+                N = 0 | (8 * ((st * sA - sp * ct * cA) * cB - sp * ct * sA - st * cA - cp * ct * sB));
+            if (y < 22 && y >= 0 && x >= 0 && x < 79 && D > z[o]) {
+              z[o] = D;
+              b[o] = ".,-~:;=!*#$@"[N > 0 ? N : 0];
+            }
+          }
+        }
+        container.textContent = b.join("");
+        termOut.scrollTop = termOut.scrollHeight;
+        frameCount++;
+        if (frameCount > 100) clearInterval(interval);
+      }, 40);
+
+      return '<span class="tc-mauve" style="font-weight:700">Rendering 3D rotating Donut.c in Kitty Terminal...</span>';
     }
-    case 'touch': case 'mkdir': return `<span class="tc-dim">(simulated) created ${a[0]||'?'}</span>`;
-    case 'rm': return a[0] ? `<span class="tc-dim">(simulated) removed ${a[0]}</span>` : `<span class="tc-red">rm: missing operand</span>`;
-    case 'pacman': return a.includes('-Syu') ? `<span class="tc-red">error: you cannot perform this operation unless you are root.</span>` : `<span class="tc-green">core is up to date\nextra is up to date\ncommunity is up to date</span>`;
-    case 'sudo': return `<span class="tc-red">[sudo] password for sayan:\nsorry, try again.\nsudo: 3 incorrect password attempts</span>`;
-    case 'hyprctl': return `<span class="tc-blue">Hyprland 0.40.0\nRunning on wayland\nConfig: ~/.config/hypr/hyprland.conf</span>`;
-    case 'btw': return `<span class="tc-accent">i use arch btw</span>`;
-    case 'vim': case 'nano': case 'nvim': return `<span class="tc-yellow">hint: try opening the Editor app instead :)</span>`;
-    case 'help': return `<span class="tc-teal">Available commands:</span>
-<span class="tc-bold">System:</span>   neofetch  uname  uptime  hostname  df  free  ps  ip  env
-<span class="tc-bold">Files:</span>    ls  cd  cat  head  tail  tree  find  wc  grep  touch  mkdir  rm
-<span class="tc-bold">Utils:</span>    echo  date  cal  history  alias  man  which  type  clear  exit
-<span class="tc-bold">Fun:</span>      fortune  cowsay  btw  pacman  sudo  hyprctl  vim
-<span class="tc-bold">Other:</span>    whoami  pwd  help`;
-    default: return `<span class="tc-red">zsh: command not found: ${cmd}</span>`;
+
+    case 'music':
+    case 'player':
+    case 'lofi': {
+      const sub = args[0] || 'toggle';
+      if (typeof playTrack === 'function') {
+        if (sub === 'play') {
+          playTrack(curTrackIdx);
+          return `<span class="tc-green">▶ Playing: ${LOFI_PLAYLIST[curTrackIdx].title}</span>`;
+        }
+        if (sub === 'pause' || sub === 'stop') {
+          pauseTrack();
+          return `<span class="tc-yellow">⏸ Music Paused.</span>`;
+        }
+        if (sub === 'next' || sub === 'skip') {
+          nextTrack();
+          return `<span class="tc-mauve">⏭ Skipped to: ${LOFI_PLAYLIST[curTrackIdx].title}</span>`;
+        }
+        if (sub === 'list') {
+          return `<span class="tc-sky" style="font-weight:700">Lo-Fi Rice Playlist (5 Tracks):</span>\n` +
+            LOFI_PLAYLIST.map((t, i) => `  [${i + 1}] ${t.title} ${i === curTrackIdx ? '<span class="tc-green">(active)</span>' : ''}`).join('\n');
+        }
+        // Toggle
+        if (!isAudioPlaying) {
+          playTrack(curTrackIdx);
+          return `<span class="tc-green">▶ Playing: ${LOFI_PLAYLIST[curTrackIdx].title}</span>`;
+        } else {
+          pauseTrack();
+          return `<span class="tc-yellow">⏸ Music Paused.</span>`;
+        }
+      }
+      return '<span class="tc-dim">Audio player not initialized.</span>';
+    }
+
+    case 'help':
+      return `<span class="tc-sky" style="font-weight:700">Available Hyprland Terminal Commands:</span>
+<span class="tc-bold">Portfolio:</span>  about  projects  statmux  research  leetcode  resume  btop  nvim
+<span class="tc-bold">System:</span>     fastfetch  whoami  pwd  tree  theme [list|name]  wp [list|name]
+<span class="tc-bold">Media:</span>      music [play|pause|next|list]  donut  cmatrix  fortune  cowsay  btw
+<span class="tc-bold">Files:</span>      ls  cd  cat  clear`;
+
+    case 'exit':
+      closeWin('terminal');
+      return null;
+
+    default:
+      return `<span class="tc-red">zsh: command not found: ${cmd}</span> (type <span class="tc-yellow">help</span> for commands)`;
   }
 }
+
 function updatePromptCwd() {
   const el = document.getElementById('t-cwd');
   if (el) el.textContent = termCwd;
 }
-function addTermOut(html) { const d = document.createElement('div'); d.innerHTML = html; termOut.appendChild(d); }
-function addTermLine(html) { const d = document.createElement('div'); d.style.marginBottom = '4px'; d.innerHTML = html; termOut.appendChild(d); }
+
+function addTermOut(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  termOut.appendChild(d);
+}
+
 function openTerminal() {
-  const w = makeWin({id:'terminal', title:'kitty', icon:'terminal', w:580, h:420, x:50, y:40, dark:true,
-    content:`<div class="term-wrap"><div class="term-out" id="t-out"></div><div class="term-in-row"><span class="t-ps"><span class="tc-green">sayan</span><span class="tc-dim">@</span><span class="tc-blue">arch</span> <span class="tc-teal" id="t-cwd">~</span> <span class="tc-accent">❯</span> </span><input class="t-input" id="t-in" autocomplete="off" spellcheck="false"></div></div>`});
-  termOut = w.querySelector('#t-out'); termIn = w.querySelector('#t-in');
-  let hi = -1;
+  const winW = Math.min(740, window.innerWidth - 40);
+  const winH = Math.min(540, window.innerHeight - 80);
+
+  const w = makeWin({
+    id: 'terminal',
+    title: 'kitty ~ sayan@arch: ~ (zsh)',
+    icon: 'terminal',
+    w: winW,
+    h: winH,
+    x: 40,
+    y: 30,
+    content: `
+      <div class="term-wrap">
+        <!-- Kitty Tab Bar Header -->
+        <div class="term-tabbar">
+          <div class="term-tab">
+            <span class="term-tab-dot"></span>
+            <span>1: sayan@arch:~ (zsh)</span>
+          </div>
+          <div class="term-tab-info">
+            <span class="term-badge"> main</span>
+            <span class="term-badge">zsh 5.9</span>
+            <span class="term-badge" style="color:var(--accent);font-weight:700">kitty</span>
+          </div>
+        </div>
+
+        <!-- Terminal Output Screen -->
+        <div class="term-out" id="t-out"></div>
+
+        <!-- Interactive Quick Action Toolbar (Lovable UX) -->
+        <div class="term-quick-bar">
+          <span class="term-qb-label">⚡ Actions:</span>
+          <button class="term-qb-btn" data-cmd="fastfetch">⚡ fastfetch</button>
+          <button class="term-qb-btn" data-cmd="about">👤 about</button>
+          <button class="term-qb-btn" data-cmd="projects">💼 projects</button>
+          <button class="term-qb-btn" data-cmd="research">📄 research</button>
+          <button class="term-qb-btn" data-cmd="donut">🍩 donut.c</button>
+          <button class="term-qb-btn" data-cmd="music next">🎵 next song</button>
+          <button class="term-qb-btn" data-cmd="clear">🧹 clear</button>
+        </div>
+
+        <!-- Starship Two-Line Prompt Row -->
+        <div class="term-in-row">
+          <div class="starship-line1">
+            <span class="sp-corner">╭─</span>
+            <span class="sp-os"></span>
+            <span class="sp-user">sayan</span><span class="tc-dim">@</span><span class="sp-host">arch</span>
+            <span class="tc-dim">in</span>
+            <span class="sp-path" id="t-cwd">~</span>
+            <span class="tc-dim">on</span>
+            <span class="sp-git"> main</span>
+            <span class="tc-green" style="font-size:10px;font-weight:700">[GPA 9.07]</span>
+          </div>
+          <div class="starship-line2">
+            <span class="sp-corner">╰─</span>
+            <span class="sp-arrow">❯</span>
+            <input class="t-input" id="t-in" autocomplete="off" spellcheck="false" autofocus placeholder="Type a command or click a shortcut...">
+          </div>
+        </div>
+      </div>
+    `
+  });
+
+  termOut = w.querySelector('#t-out');
+  termIn = w.querySelector('#t-in');
+
+  function runTerminalCommand(cmdString, isInitial = false) {
+    const v = cmdString.trim();
+    if (!v) return;
+    cmdHist.unshift(v);
+    histIdx = -1;
+
+    addTermOut(`
+      <div style="margin-top:4px;">
+        <div class="starship-line1">
+          <span class="sp-corner">╭─</span>
+          <span class="sp-os"></span>
+          <span class="sp-user">sayan</span><span class="tc-dim">@</span><span class="sp-host">arch</span>
+          <span class="tc-dim">in</span>
+          <span class="sp-path">${termCwd}</span>
+          <span class="tc-dim">on</span>
+          <span class="sp-git"> main</span>
+        </div>
+        <div class="starship-line2">
+          <span class="sp-corner">╰─</span>
+          <span class="sp-arrow">❯</span> <span style="font-weight:700;color:var(--text)">${v.replace(/</g, '&lt;')}</span>
+        </div>
+      </div>
+    `);
+
+    const r = execCmd(v);
+    if (r !== null && r !== undefined && r !== '') {
+      const outDiv = document.createElement('div');
+      outDiv.style.margin = '2px 0 6px 14px';
+      outDiv.innerHTML = r;
+      termOut.appendChild(outDiv);
+    }
+
+    if (termIn) termIn.value = '';
+    if (isInitial) {
+      termOut.scrollTop = 0;
+    } else {
+      termOut.scrollTop = termOut.scrollHeight;
+    }
+  }
+
   termIn.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
-      const v = termIn.value.trim(); cmdHist.unshift(v); hi = -1;
-      addTermOut(`<span class="tc-green">sayan</span><span class="tc-dim">@</span><span class="tc-blue">arch</span> <span class="tc-teal">${termCwd}</span> <span class="tc-accent">❯</span> ${v.replace(/</g,'&lt;')}`);
-      const r = execCmd(v);
-      if (r !== null && r !== undefined && r !== '') addTermLine(r);
-      termIn.value = ''; termOut.scrollTop = termOut.scrollHeight;
+      runTerminalCommand(termIn.value);
     }
-    if (e.key === 'ArrowUp') { hi = Math.min(hi+1, cmdHist.length-1); if (cmdHist[hi]) termIn.value = cmdHist[hi]; e.preventDefault(); }
-    if (e.key === 'ArrowDown') { hi = Math.max(hi-1, -1); termIn.value = hi >= 0 ? cmdHist[hi] : ''; e.preventDefault(); }
-    if (e.key === 'Tab') { e.preventDefault();  }
-    if (e.key === 'l' && e.ctrlKey) { e.preventDefault(); termOut.innerHTML = ''; }
+
+    if (e.key === 'ArrowUp') {
+      histIdx = Math.min(histIdx + 1, cmdHist.length - 1);
+      if (cmdHist[histIdx]) termIn.value = cmdHist[histIdx];
+      e.preventDefault();
+    }
+
+    if (e.key === 'ArrowDown') {
+      histIdx = Math.max(histIdx - 1, -1);
+      termIn.value = histIdx >= 0 ? cmdHist[histIdx] : '';
+      e.preventDefault();
+    }
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const val = termIn.value.trim();
+      const allCmds = ['music', 'fastfetch', 'about', 'projects', 'statmux', 'leetcode', 'resume', 'research', 'btop', 'nvim', 'clear', 'donut', 'cmatrix', 'help', 'theme', 'wp', 'wallpaper', 'fortune', 'cowsay'];
+      const match = allCmds.find(c => c.startsWith(val));
+      if (match) termIn.value = match;
+    }
+
+    if (e.key === 'l' && e.ctrlKey) {
+      e.preventDefault();
+      termOut.innerHTML = '';
+    }
   });
-  addTermOut(`<span class="tc-green">sayan</span><span class="tc-dim">@</span><span class="tc-blue">arch</span> <span class="tc-teal">~</span> <span class="tc-accent">❯</span> <span id="tcmd"></span>`);
-  const tc = w.querySelector('#tcmd'), cmdStr = 'neofetch'; let ci = 0;
-  const iv = setInterval(() => {
-    tc.textContent = cmdStr.slice(0, ++ci);
-    if (ci >= cmdStr.length) { clearInterval(iv); setTimeout(() => { const r = execCmd('neofetch'); if(r) addTermLine(r); termOut.scrollTop = termOut.scrollHeight; }, 120); }
-  }, 55);
-  setTimeout(() => termIn.focus(), 500);
+
+  // Quick Action Buttons Listener
+  w.querySelectorAll('.term-qb-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cmd = btn.dataset.cmd;
+      if (cmd) runTerminalCommand(cmd);
+    });
+  });
+
+  // Welcome auto-run fastfetch (stays pinned to top)
+  setTimeout(() => {
+    runTerminalCommand('fastfetch', true);
+    termOut.scrollTop = 0;
+  }, 250);
+
+  setTimeout(() => {
+    termIn.focus();
+    termOut.scrollTop = 0;
+  }, 350);
 }
