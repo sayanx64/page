@@ -201,7 +201,7 @@ const FASTFETCH_ART = `
     <div><span class="tc-sky" style="font-weight:700">Education:</span> KIIT CS AI/ML (<span class="tc-green" style="font-weight:700">GPA 9.07</span>)</div>
     <div><span class="tc-sky" style="font-weight:700">LeetCode:</span> <span class="tc-yellow" style="font-weight:700">135+ Solved (@sayarch)</span></div>
     <div><span class="tc-sky" style="font-weight:700">Featured:</span> <span class="tc-mauve" style="font-weight:700">statmux.sayan.cyou</span></div>
-    <div><span class="tc-sky" style="font-weight:700">AUR PKG:</span> <span class="tc-peach" style="font-weight:700">phub-cli (★ 160+ stars)</span></div>
+    <div><span class="tc-sky" style="font-weight:700">AUR PKG:</span> <span class="tc-peach" style="font-weight:700">phub-cli (160+ stars)</span></div>
     <div><span class="tc-sky" style="font-weight:700">Research:</span> <span class="tc-teal" style="font-weight:700">IEEE Xplore Published (Nov 2025)</span></div>
     <div><span class="tc-sky" style="font-weight:700">Memory:</span> 4.21 GiB / 15.28 GiB (27%)</div>
     <div class="color-bar">
@@ -433,7 +433,7 @@ function execCmd(raw) {
       return ` ${border}\n< ${msg} >\n ${'-'.repeat(msg.length + 2)}\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\       )\\/\\\n                ||----w |\n                ||     ||`;
 
     case 'btw':
-      return `<span class="tc-mauve" style="font-weight:700">i use arch btw 󰣇</span>`;
+      return `<span class="tc-mauve" style="font-weight:700">i use arch btw</span>`;
 
     case 'donut': {
       let A = 0, B = 0;
@@ -490,15 +490,15 @@ function execCmd(raw) {
       if (typeof playTrack === 'function') {
         if (sub === 'play') {
           playTrack(curTrackIdx);
-          return `<span class="tc-green">▶ Playing: ${LOFI_PLAYLIST[curTrackIdx].title}</span>`;
+          return `<span class="tc-green">[playing] ${LOFI_PLAYLIST[curTrackIdx].title}</span>`;
         }
         if (sub === 'pause' || sub === 'stop') {
           pauseTrack();
-          return `<span class="tc-yellow">⏸ Music Paused.</span>`;
+          return `<span class="tc-yellow">[paused] Music playback paused.</span>`;
         }
         if (sub === 'next' || sub === 'skip') {
           nextTrack();
-          return `<span class="tc-mauve">⏭ Skipped to: ${LOFI_PLAYLIST[curTrackIdx].title}</span>`;
+          return `<span class="tc-mauve">[next] ${LOFI_PLAYLIST[curTrackIdx].title}</span>`;
         }
         if (sub === 'list') {
           return `<span class="tc-sky" style="font-weight:700">Lo-Fi Rice Playlist (5 Tracks):</span>\n` +
@@ -507,10 +507,10 @@ function execCmd(raw) {
         // Toggle
         if (!isAudioPlaying) {
           playTrack(curTrackIdx);
-          return `<span class="tc-green">▶ Playing: ${LOFI_PLAYLIST[curTrackIdx].title}</span>`;
+          return `<span class="tc-green">[playing] ${LOFI_PLAYLIST[curTrackIdx].title}</span>`;
         } else {
           pauseTrack();
-          return `<span class="tc-yellow">⏸ Music Paused.</span>`;
+          return `<span class="tc-yellow">[paused] Music playback paused.</span>`;
         }
       }
       return '<span class="tc-dim">Audio player not initialized.</span>';
@@ -564,7 +564,7 @@ function openTerminal() {
             <span>1: sayan@arch:~ (zsh)</span>
           </div>
           <div class="term-tab-info">
-            <span class="term-badge"> main</span>
+            <span class="term-badge">main</span>
             <span class="term-badge">zsh 5.9</span>
             <span class="term-badge" style="color:var(--accent);font-weight:700">kitty</span>
           </div>
@@ -575,32 +575,31 @@ function openTerminal() {
 
         <!-- Interactive Quick Action Toolbar (Lovable UX) -->
         <div class="term-quick-bar">
-          <span class="term-qb-label">⚡ Actions:</span>
-          <button class="term-qb-btn" data-cmd="fastfetch">⚡ fastfetch</button>
-          <button class="term-qb-btn" data-cmd="about">👤 about</button>
-          <button class="term-qb-btn" data-cmd="projects">💼 projects</button>
-          <button class="term-qb-btn" data-cmd="research">📄 research</button>
-          <button class="term-qb-btn" data-cmd="donut">🍩 donut.c</button>
-          <button class="term-qb-btn" data-cmd="music next">🎵 next song</button>
-          <button class="term-qb-btn" data-cmd="clear">🧹 clear</button>
+          <span class="term-qb-label">quick cmds:</span>
+          <button class="term-qb-btn" data-cmd="fastfetch">fastfetch</button>
+          <button class="term-qb-btn" data-cmd="about">about</button>
+          <button class="term-qb-btn" data-cmd="projects">projects</button>
+          <button class="term-qb-btn" data-cmd="research">research</button>
+          <button class="term-qb-btn" data-cmd="donut">donut.c</button>
+          <button class="term-qb-btn" data-cmd="music next">next track</button>
+          <button class="term-qb-btn" data-cmd="clear">clear</button>
         </div>
 
         <!-- Starship Two-Line Prompt Row -->
         <div class="term-in-row">
           <div class="starship-line1">
             <span class="sp-corner">╭─</span>
-            <span class="sp-os"></span>
             <span class="sp-user">sayan</span><span class="tc-dim">@</span><span class="sp-host">arch</span>
             <span class="tc-dim">in</span>
             <span class="sp-path" id="t-cwd">~</span>
             <span class="tc-dim">on</span>
-            <span class="sp-git"> main</span>
-            <span class="tc-green" style="font-size:10px;font-weight:700">[GPA 9.07]</span>
+            <span class="sp-git">main</span>
+            <span class="tc-green" style="font-size:10px;font-weight:700">[gpa:9.07]</span>
           </div>
           <div class="starship-line2">
             <span class="sp-corner">╰─</span>
             <span class="sp-arrow">❯</span>
-            <input class="t-input" id="t-in" autocomplete="off" spellcheck="false" autofocus placeholder="Type a command or click a shortcut...">
+            <input class="t-input" id="t-in" autocomplete="off" spellcheck="false" autofocus placeholder="Type a command (e.g. fastfetch, about, projects)...">
           </div>
         </div>
       </div>
@@ -620,12 +619,11 @@ function openTerminal() {
       <div style="margin-top:4px;">
         <div class="starship-line1">
           <span class="sp-corner">╭─</span>
-          <span class="sp-os"></span>
           <span class="sp-user">sayan</span><span class="tc-dim">@</span><span class="sp-host">arch</span>
           <span class="tc-dim">in</span>
           <span class="sp-path">${termCwd}</span>
           <span class="tc-dim">on</span>
-          <span class="sp-git"> main</span>
+          <span class="sp-git">main</span>
         </div>
         <div class="starship-line2">
           <span class="sp-corner">╰─</span>
